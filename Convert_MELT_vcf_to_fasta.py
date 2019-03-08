@@ -5,7 +5,7 @@ import sys
 try:
 	input_file=sys.argv[1]
 except:
-	print "usage: example.py input_file(.vcf) MEI (Alu LINE1 SVA)"
+	print "usage:Convert_MELT_vcf_to_fasta.py input_file(.vcf) MEI (Alu LINE1 SVA)"
 
 AluY = list('ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcctggctaacacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtggtggcgggcgcctgtagtcccagctactcgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcgcgccactgcactccagcctgggcgacagagcgagactccgtctca')
 
