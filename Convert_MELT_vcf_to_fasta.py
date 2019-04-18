@@ -119,9 +119,7 @@ with open(input_file,'r') as vcf_file:
                         
 		###This section adds dashes for 5' truncated loci	
                 start = MEI_info[1]
-                if  start == '-1':
-                        continue
-                elif start != '0' and start != '1':
+                if start > '1':
                         truncation = "d1-" + str(int(start)-1)
                         drange = deletion_range(truncation)
                         for n in drange:
