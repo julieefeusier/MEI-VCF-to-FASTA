@@ -1,13 +1,58 @@
+#!/usr/bin/python
 import re
-        
+
 import sys
+from argparse import ArgumentParser
 
-try:
-	input_file=sys.argv[1]
-except:
-	print "usage:Convert_MELT_vcf_to_fasta.py input_file(.vcf) MEI (Alu LINE1 SVA)"
+parser = ArgumentParser()
+requiredNamed = parser.add_argument_group('required named arguments')
 
-AluY = list('ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcctggctaacacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtggtggcgggcgcctgtagtcccagctactcgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcgcgccactgcactccagcctgggcgacagagcgagactccgtctca')
+requiredNamed.add_argument('-i', '--in',
+                    metavar='INPUT VCF',
+                    dest="i",
+                    required=True,
+                    help='name/path to VCF')
+
+parser.add_argument('-o', '--out',
+                    metavar='OUTPUT FASTA',
+                    dest="o",
+                    help='output FASTA file. Default will have the same prefix as vcf')
+
+parser.add_argument('-m',
+                    metavar='MELT HG19 TRANSPOSON',
+                    dest="m",
+                    type=str,
+                    help='MELT HG19 human transposon files (Alu, L1, or SVA)')
+
+parser.add_argument('-f', '--fasta',
+                    metavar='TRANSPOSON FASTA',
+                    dest="f",
+                    help='transposon fasta used for MELT analysis')
+
+args = parser.parse_args()
+
+if args.i is None:
+        raise NameError('Must include name/path to MELT VCF file with option -i')
+else:
+        input_file = args.i
+
+if args.o is None:
+        output_tmp = args.i
+        output_file = output_tmp.rsplit(".",1)[0] + ".fasta"
+else:
+        output_file= args.o
+fasta=open(output_file, 'w+')
+
+if args.m is None and args.f is None:
+        raise NameError('Must include either hg19 transposon file with option -m or other MELT transposon file with option -f')
+else:
+        if args.f is None:
+                MEI = args.m
+        else:
+                MEI = args.f
+
+###These are the hg19 transposon FASTA sequences as providied by MELTv2.1.4
+AluY= list('ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcctggctaacacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtggtggcgggcgcctgtagtcccagctactcgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcgcgccactgcactccagcctgggcgacagagcgagactccgtctca')
 
 SVA = list('ctccctctccctcaccctctccccatggtctccctctccctctctttagtctcgttcactcagtgctcaatgatagcagcctgccttggcctcccaaagtgccgagattgcagcctctgcccggccgccaccccgtctgggaagtgaggagtgtctccgcctggccacccatcgtctgggatgtgaggagcgtctctgccctgccgcccatcgtctgagatgtggggagcacctctgcccggccgccccgtccgggatgtgaggagcgtcgctgcccggccgccccgtctgagaagtgaggagaccctctgcctggcaaccgctccatctgagaagtgaggagcccctccgcccggcagccgccctgtctgagaagtgaggagcccctccgcccagcagccacctggtccgggagggaggtgggggggtcagccccccgcccggccagccgccccgtccgggagggaggtgggggggtcagcccccagcccggccagccgccccgtccgggaagtgaggggcgcctctgcccggccgcccctactgggaagtgaggagccactttgcccggccagccactctgtccgggagggaggtgggggggtcagccccccgcccggccagccgccccgtccgggagggaggtggggggatcagccccccgcccagccagccgccccgtccgggagggaggtgggggggtcagccccccgcccggccagccgccctgtccgggaggtgaggggcgcctctgcccggccgcgcctactggaaagtgaggagcccctctgcccggccaccaccccgtctgggaggtgtgcccaacagctcattgagaaggggccatgatgacaatggcggttttgtggaatagaaaggggggaaaggtggggaaaagattgagaaatcggatggttgccgtgtctgtgtagaaagaggtagacctgggagacttttcattttgttctgtactaagaaaaattcttctgccttgggatcctgttgatcggtgaccttacccccaaccctgtgctctctgaaacatgtgctgtatccactcagggttgaatggattaagagcggtgcaagatgtgctttgttaaacagatgcttgaaggcagcatgctccttaagagtcatcaccactccctaatctcaagtacccagggacacaaacactgcggaaggccgcagggtcctctgcctaggaaaaccagagacctttgttcacttgtttatctgctgaccttccctccactattgtcctgtgaccctgccaaatccccctctgtgagaaacacccaagaatgatcaat')
 
@@ -50,40 +95,41 @@ def insertion_location(str_i):
     insert_name = re.split('(\d+)',str_i)
     return insert_name
 
-count=0	
-input_file=sys.argv[1]
-MEI = sys.argv[2]
-MEI_contig = ''
-MEI_contig2 = ''
-
 ###Takes the TE input for the consensus sequence
+MEI_contig = []
 if MEI == 'Alu':
-        MEI_contig = AluY
+        MEI_contig = AluY[:]
         MEI_end = 281
 elif MEI == 'LINE1':
-        MEI_contig = LINE1
+        MEI_contig = LINE1[:]
         MEI_end = 6019
 elif MEI == 'SVA':
-        MEI_contig = SVA
+        MEI_contig = SVA[:]
         MEI_end = 1316
+elif MEI == args.f:
+        transposon_line = ""
+        ###This extracts the single- or multi-line FASTA
+        with open(MEI,'r') as transposon_file:
+                for t_line in transposon_file:
+                        if re.search(">",t_line):
+                                continue
+                        transposon_line += t_line
+        transposon_file.close()
+        transposon_line1 = transposon_line.replace('\n','')
+        MEI_contig = list(transposon_line1.lower())
+        MEI_end = len(transposon_line1)-1
 
+MEI_contig_original = MEI_contig[:]
 
 with open(input_file,'r') as vcf_file:
 	for line in vcf_file:
-		count +=1
-                if MEI == 'Alu':
-                        MEI_contig = list('ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcctggctaacacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtggtggcgggcgcctgtagtcccagctactcgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcgcgccactgcactccagcctgggcgacagagcgagactccgtctca')
-
-
-                if MEI == 'SVA':
-                        MEI_contig = list('ctccctctccctcaccctctccccatggtctccctctccctctctttagtctcgttcactcagtgctcaatgatagcagcctgccttggcctcccaaagtgccgagattgcagcctctgcccggccgccaccccgtctgggaagtgaggagtgtctccgcctggccacccatcgtctgggatgtgaggagcgtctctgccctgccgcccatcgtctgagatgtggggagcacctctgcccggccgccccgtccgggatgtgaggagcgtcgctgcccggccgccccgtctgagaagtgaggagaccctctgcctggcaaccgctccatctgagaagtgaggagcccctccgcccggcagccgccctgtctgagaagtgaggagcccctccgcccagcagccacctggtccgggagggaggtgggggggtcagccccccgcccggccagccgccccgtccgggagggaggtgggggggtcagcccccagcccggccagccgccccgtccgggaagtgaggggcgcctctgcccggccgcccctactgggaagtgaggagccactttgcccggccagccactctgtccgggagggaggtgggggggtcagccccccgcccggccagccgccccgtccgggagggaggtggggggatcagccccccgcccagccagccgccccgtccgggagggaggtgggggggtcagccccccgcccggccagccgccctgtccgggaggtgaggggcgcctctgcccggccgcgcctactggaaagtgaggagcccctctgcccggccaccaccccgtctgggaggtgtgcccaacagctcattgagaaggggccatgatgacaatggcggttttgtggaatagaaaggggggaaaggtggggaaaagattgagaaatcggatggttgccgtgtctgtgtagaaagaggtagacctgggagacttttcattttgttctgtactaagaaaaattcttctgccttgggatcctgttgatcggtgaccttacccccaaccctgtgctctctgaaacatgtgctgtatccactcagggttgaatggattaagagcggtgcaagatgtgctttgttaaacagatgcttgaaggcagcatgctccttaagagtcatcaccactccctaatctcaagtacccagggacacaaacactgcggaaggccgcagggtcctctgcctaggaaaaccagagacctttgttcacttgtttatctgctgaccttccctccactattgtcctgtgaccctgccaaatccccctctgtgagaaacacccaagaatgatcaat')
-
-                if MEI == 'LINE1':
-                        MEI_contig =  list('gggggaggagccaagatggccgaataggaacagctccggtctacagctcccagcgtgagcgacgcagaagacggtgatttctgcatttccatctgaggtaccgggttcatctcactagggagtgccagacagtgggcgcaggccagtgtgtgtgcgcaccgtgcgcgagccgaagcagggcgaggcattgcctcacctgggaagcgcaaggggtcagggagttccctttctgagtcaaagaaaggggtgacggtcgcacctggaaaatcgggtcactcccacccgaatattgcgcttttcagaccggcttaagaaacggcgcaccacgagactatatcccacacctggctcggagggtcctacgcccacggaatctcgctgattgctagcacagcagtctgagatcaaactgcaaggcggcaacgaggctgggggaggggcgcccgccattgcccaggcttgcttaggtaaacaaagcagccgggaagctcgaactgggtggagcccaccacagctcaaggaggcctgcctgcctctgtaggctccacctctgggggcagggcacagacaaacaaaaagacagcagtaacctctgcagacttaagtgtccctgtctgacagctttgaagagagcagtggttctcccagcacgcagctggagatctgagaacgggcagacagactgcctcctcaagtgggtccctgactcctgacccccgagcagcctaactgggaggcaccccccagcaggggcacactgacacctcacacggcagggtattccaacagacctgcagctgagggtcctgtctgttagaaggaaaactaacaaccagaaaggacatctacaccgaaaacccatctgtacatcaccatcatcaaagaccaaaagtagataaaaccacaaagatggggaaaaaacagaacagaaaaactggaaactctaaaacgcagagcgcctctcctcctccaaaggaacgcagttcctcaccagcaacggaacaaagctggatggagaatgattttgacgagctgagagaagaaggcttcagacgatcaaattactctgagctacgggaggacattcaaaccaaaggcaaagaagttgaaaactttgaaaaaaatttagaagaatgtataactagaataaccaatacagagaagtgcttaaaggagctgatggagctgaaaaccaaggctcgagaactacgtgaagaatgcagaagcctcaggagccgatgcgatcaactggaagaaagggtatcagcaatggaagatgaaatgaatgaaatgaagcgagaagggaagtttagagaaaaaagaataaaaagaaatgagcaaagcctccaagaaatatgggactatgtgaaaagaccaaatctacgtctgattggtgtacctgaaagtgatgtggagaatggaaccaagttggaaaacactctgcaggatattatccaggagaacttccccaatctagcaaggcaggccaacgttcagattcaggaaatacagagaacgccacaaagatactcctcgagaagagcaactccaagacacataattgtcagattcaccaaagttgaaatgaaggaaaaaatgttaagggcagccagagagaaaggtcgggttaccctcaaaggaaagcccatcagactaacagtggatctctcggcagaaaccctacaagccagaagagagtgggggccaatattcaacattcttaaagaaaagaattttcaacccagaatttcatatccagccaaactaagcttcataagtgaaggagaaataaaatactttatagacaagcaaatgttgagagattttgtcaccaccaggcctgccctaaaagagctcctgaaggaagcgctaaacatggaaaggaacaaccggtaccagccgctgcaaaatcatgccaaaatgtaaagaccatcgagactaggaagaaactgcatcaactaatgagcaaaatcaccagctaacatcataatgacaggatcaaattcacacataacaatattaactttaaatataaatggactaaattctgcaattaaaagacacagactggcaagttggataaagagtcaagacccatcagtgtgctgtattcaggaaacccatctcacgtgcagagacacacataggctcaaaataaaaggatggaggaagatctaccaagccaatggaaaacaaaaaaaggcaggggttgcaatcctagtctctgataaaacagactttaaaccaacaaagatcaaaagagacaaagaaggccattacataatggtaaagggatcaattcaacaagaggagctaactatcctaaatatttatgcacccaatacaggagcacccagattcataaagcaagtcctcagtgacctacaaagagacttagactcccacacattaataatgggagactttaacaccccactgtcaacattagacagatcaacgagacagaaagtcaacaaggatacccaggaattgaactcagctctgcaccaagcagacctaatagacatctacagaactctccaccccaaatcaacagaatatacctttttttcagcaccacaccacacctattccaaaattgaccacatagttggaagtaaagctctcctcagcaaatgtaaaagaacagaaattataacaaactatctctcagaccacagtgcaatcaaactagaactcaggattaagaatctcactcaaagccgctcaactacatggaaactgaacaacctgctcctgaatgactactgggtacataacgaaatgaaggcagaaataaagatgttctttgaaaccaacgagaacaaagacaccacataccagaatctctgggacgcattcaaagcagtgtgtagagggaaatttatagcactaaatgcctacaagagaaagcaggaaagatccaaaattgacaccctaacatcacaattaaaagaactagaaaagcaagagcaaacacattcaaaagctagcagaaggcaagaaataactaaaatcagagcagaactgaaggaaatagagacacaaaaaacccttcaaaaaatcaatgaatccaggagctggttttttgaaaggatcaacaaaattgatagaccgctagcaagactaataaagaaaaaaagagagaagaatcaaatagacacaataaaaaatgataaaggggatatcaccaccgatcccacagaaatacaaactaccatcagagaatactacaaacacctctacgcaaataaactagaaaatctagaagaaatggatacattcctcgacacatacactctcccaagactaaaccaggaagaagttgaatctctgaatagaccaataacaggctctgaaattgtggcaataatcaatagtttaccaaccaaaaagagtccaggaccagatggattcacagccgaattctaccagaggtacatggaggaactggtaccattccttctgaaactattccaatcaatagaaaaagagggaatcctccctaactcattttatgaggccagcatcattctgataccaaagccgggcagagacacaaccaaaaaagagaattttagaccaatatccttgatgaacattgatgcaaaaatcctcaataaaatactggcaaaccgaatccagcagcacatcaaaaagcttatccaccatgatcaagtgggcttcatccctgggatgcaaggctggttcaatatacgcaaatcaataaatgtaatccagcatataaacagagccaaagacaaaaaccacatgattatctcaatagatgcagaaaaagcctttgacaaaattcaacaacccttcatgctaaaaactctcaataaattaggtattgatgggacgtatttcaaaataataagagctatctatgacaaacccacagccaatatcatactgaatgggcaaaaactggaagcattccctttgaaaaccggcacaagacagggatgccctctctcaccgctcctattcaacatagtgttggaagttctggccagggcaatcaggcaggagaaggaaataaagggtattcaattaggaaaagaggaagtcaaattgtccctgtttgcagacgacatgattgtatatctagaaaaccccatcgtctcagcccaaaatctccttaagctgataagcaacttcagcaaagtctcaggatacaaaatcaatgtacaaaaatcacaagcattcttatacaccaacaacagacaaacagagagccaaatcatgggtgaactcccattcgtaattgcttcaaagagaataaaatacctaggaatccaacttacaagggatgtgaaggacctcttcaaggagaactacaaaccactgctcaaggaaataaaagaggacacaaacaaatggaagaacattccatgctcatgggtaggaagaatcaatatcgtgaaaatggccatactgcccaaggtaatttacagattcaatgccatccccatcaagctaccaatgactttcttcacagaattggaaaaaactactttaaagttcatatggaaccaaaaaagagcccgcattgccaagtcaatcctaagccaaaagaacaaagctggaggcatcacactacctgacttcaaactatactacaaggctacagtaaccaaaacagcatggtactggtaccaaaacagagatatagatcaatggaacagaacagagccctcagaaataatgccgcatatctacaactatctgatctttgacaaacctgagaaaaacaagcaatggggaaaggattccctatttaataaatggtgctgggaaaactggctagccatatgtagaaagctgaaactggatcccttccttacaccttatacaaaaatcaattcaagatggattaaagatttaaacgttaaacctaaaaccataaaaaccctagaagaaaacctaggcattaccattcaggacataggcgtgggcaaggacttcatgtccaaaacaccaaaagcaatggcaacaaaagacaaaattgacaaatgggatctaattaaactaaagagcttctgcacagcaaaagaaactaccatcagagtgaacaggcaacctacaacatgggagaaaattttcgcaacctactcatctgacaaagggctaatatccagaatctacaatgaacttaaacaaatttacaagaaaaaaacaaacaaccccatcaaaaagtgggcgaaggacatgaacagacacttctcaaaagaagacatttatgcagccaaaaaacacatgaagaaatgctcatcatcactggccatcagagaaatgcaaatcaaaaccactatgagatatcatctcacaccagttagaatggcaatcattaaaaagtcaggaaacaacaggtgctggagaggatgcggagaaataggaacacttttacactgttggtgggactgtaaactagttcaaccattgtggaagtcagtgtggcgattcctcagggatctagaactagaaataccatttgacccagccatcccattactgggtatatacccaaatgagtataaatcatgctgctataaagacacatgcacacgtatgtttattgcggcactattcacaatagcaaagacttggaaccaacccaaatgtccaacaatgatagactggattaagaaaatgtggcacatatacaccatggaatactatgcagccataaaaaatgatgagttcatatcctttgtagggacatggatgaaattggaaaccatcattctcagtaaactatcgcaagaacaaaaaaccaaacaccgcatattctcactcataggtgggaattgaacaatgagatcacatggacacaggaaggggaatatcacactctggggactgtggtggggtcgggggaggggggagggatagcattgggagatatacctaatgctagatgacacattagtgggtgcagcgcaccagcatggcacatgtatacatatgtaactaacctgcacaatgtgcacatgtaccctaaaacttagagtat')
-
+                MEI_contig = MEI_contig_original[:]
+                
+                ###This skips all header lines in the vcf
                 if re.search("#", line):
                         continue
 
+                ###This parses the vcf file
                 vcf_split = line.split('\t')
 		info_split = vcf_split[7].split(';')
                 diff_info2 = info_split[5]
@@ -104,8 +150,6 @@ with open(input_file,'r') as vcf_file:
 		
                 ###Replacement of SNVs and deletions
 		for i in diff_subs:
-			if (i[0] == 'n'):
-                                continue
                         if (i[0] == 'g') or (i[0] == 'a') or (i[0] == 'c') or (i[0] == 't'):
 				sub, location = sub_location(i)
 				new_location = location - 1
@@ -130,7 +174,6 @@ with open(input_file,'r') as vcf_file:
                 stop = MEI_info[2]
                 if str(stop) != str(MEI_end):
                         truncation = "d" + str(int(stop)+1) + "-" + str(MEI_end)
-                        #print truncation
                         drange = deletion_range(truncation)
                         for n in drange:
                                 m = n-1
@@ -146,5 +189,6 @@ with open(input_file,'r') as vcf_file:
                 while '-' in MEI_contig: MEI_contig.remove('-')
                 
                 ###Print the fasta sequence
-                print '>' + vcf_split[0] + '_' + vcf_split[1] + '_' + info_split[5] + '_' + info_split[6] + '_' + start + '_' + stop
-		print ''.join(MEI_contig)
+                fasta.write(str('>' + vcf_split[0] + '_' + vcf_split[1] + '_' + info_split[5] + '_' + info_split[6] + '\n'))
+		fasta.write(str(''.join(MEI_contig) + '\n'))
+vcf_file.close()
