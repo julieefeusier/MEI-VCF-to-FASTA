@@ -22,7 +22,7 @@ parser.add_argument('-m',
                     metavar='MELT HG19 TRANSPOSON',
                     dest="m",
                     type=str,
-                    help='MELT HG19 human transposon files (Alu, L1, or SVA)')
+                    help='MELT HG19 human transposon names (Alu, LINE1, or SVA)')
 
 parser.add_argument('-f', '--fasta',
                     metavar='TRANSPOSON FASTA',
@@ -44,12 +44,17 @@ else:
 fasta=open(output_file, 'w+')
 
 if args.m is None and args.f is None:
-        raise NameError('Must include either hg19 transposon file with option -m or other MELT transposon file with option -f')
-else:
-        if args.f is None:
-                MEI = args.m
+        raise NameError('Must include either hg19 transposon name (Alu, LINE1, or SVA) with option -m or other MELT transposon file with option -f')
+elif args.m is None and args.f is not None:
+        if (args.f == "Alu") or (args.f == 'LINE1') or (args.f == 'SVA'):
+                raise NameError('Please input a fasta file that is not named Alu, LINE1, or SVA. Or specify the transposon using option -m')
         else:
                 MEI = args.f
+elif args.m is not None and args.f is None:
+        if (args.m == "Alu") or (args.m == 'LINE1') or (args.m == 'SVA'):
+                MEI = args.m
+        else:
+                raise NameError('Must include hg19 transposon name (Alu, LINE1, or SVA) with option -m')
 
 ###These are the hg19 transposon FASTA sequences as providied by MELTv2.1.4
 AluY= list('ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcctggctaacacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtggtggcgggcgcctgtagtcccagctactcgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcgcgccactgcactccagcctgggcgacagagcgagactccgtctca')
