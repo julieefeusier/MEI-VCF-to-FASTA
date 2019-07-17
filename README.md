@@ -12,7 +12,7 @@ optional arguments:
   -o OUTPUT FASTA, --out OUTPUT FASTA
                         output FASTA file. Default will have the same prefix as vcf
   -m MELT HG19 TRANSPOSON
-                        MELT HG19 human transposon files (Alu, L1, or SVA)
+                        MELT HG19 human transposon files (Alu, LINE1, or SVA)
   -f TRANSPOSON FASTA, --fasta TRANSPOSON FASTA
                         transposon fasta used for MELT analysis
 
