@@ -1,5 +1,5 @@
 # MEI-VCF-to-FASTA
-This tool converts the INFO column from a MELT vcf into fasta format. The script also requires either the single **transposon fasta file** used in MELT analysis with option **-f** or the designation of one of the hg19 transposon families supplied by MELTv2.14 (**-m Alu**).
+This tool converts the INFO column from a MELT vcf into fasta format. The script also requires either the single **transposon fasta file** used in MELT analysis with option **-f** or the designation of one of the human transposon families supplied by MELTv2.14 (**-m Alu**).
 
 # Usage<br/>
 ```
@@ -12,7 +12,7 @@ optional arguments:
   -o OUTPUT FASTA, --out OUTPUT FASTA
                         output FASTA file. Default will have the same prefix as vcf
   -m MELT HG19 TRANSPOSON
-                        MELT HG19 human transposon files (Alu, LINE1, or SVA)
+                        MELT reference human transposon files (Alu, LINE1, or SVA)
   -f TRANSPOSON FASTA, --fasta TRANSPOSON FASTA
                         transposon fasta used for MELT analysis
 
