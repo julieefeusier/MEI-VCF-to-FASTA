@@ -1,5 +1,11 @@
 # MEI-VCF-to-FASTA
-This tool converts the INFO column from a MELT vcf into fasta format. The script also requires either the single **transposon fasta file** used in MELT analysis with option **-f** or the designation of one of the human transposon families supplied by MELTv2.14 (**-m Alu**).
+This tool converts the INFO column from a MELT vcf into fasta format. The script also requires either the single **transposon fasta file** used in MELT analysis with option **-f** or the designation of one of the human transposon families supplied by MELTv2.14-MELTv2.2.0 (**-m Alu**). I verified that the Alu, LINE1, and SVA reference files are consisitent between these versions.
+
+WARNING:
+
+MELTv2.2.0 drastically changed the way the differences were recorded. This script now incorporates 1KG Subfamily information for Alu elements, but cannot recreate sequences from vague subfamily names (AluYb, AluYa, etc.). Be vary wary using this with MELTv2.2.0.
+
+This script does not account for any non-reference sequence. I would not recommend using this script for transposons with highly variable non-reference sequences like SVAs.
 
 # Usage<br/>
 ```
@@ -21,5 +27,6 @@ required named arguments:
                         name/path to VCF
 
 ```
+
 
 Please email me if you have any questions: jfeusier@genetics.utah.edu
