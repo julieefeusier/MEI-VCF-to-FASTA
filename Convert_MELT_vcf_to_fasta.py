@@ -266,7 +266,7 @@ with open(input_file,'r') as vcf_file:
         start = MEI_info[1]
         if str(start) > str(MEI_end):
             start = MEI_end
-        elif start > '1':
+        if start > '1':
             truncation = "d1-" + str(int(start)-1)
             drange = deletion_range(truncation)
             for n in drange:
