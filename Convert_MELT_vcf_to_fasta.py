@@ -22,7 +22,7 @@ parser.add_argument('-m',
                     metavar='MELT HG19 TRANSPOSON',
                     dest="m",
                     type=str,
-                    help='MELT Hg19/Hg38 human transposon families (Alu, LINE1, or SVA)')
+                    help='MELT HG19 human transposon names (Alu, LINE1, or SVA)')
 
 parser.add_argument('-f', '--fasta',
                     metavar='TRANSPOSON FASTA',
@@ -39,9 +39,12 @@ else:
 if args.o is None:
         output_tmp = args.i
         output_file = output_tmp.rsplit(".",1)[0] + ".fasta"
+        error_file = output_tmp.rsplit(".",1)[0] + ".failed_loci.txt"
 else:
         output_file= args.o
+        error_file = args.o + ".failed_loci.txt"
 fasta=open(output_file, 'w+')
+failed=open(error_file, 'w+')
 
 if args.m is None and args.f is None:
         raise NameError('Must include either hg19 transposon name (Alu, LINE1, or SVA) with option -m or other MELT transposon file with option -f')
@@ -214,9 +217,9 @@ with open(input_file,'r') as vcf_file:
         if re.search("#", line):
             continue
 
-        ###This skips Alu elements that are classified as SVA elements
         if MEI == 'Alu':
             if re.search("MEINFO=SVA", line):
+                failed.write(str(vcf_split[0] + '_' + vcf_split[1] + '_' + info_split[5] + '_' + info_split[6] + ': MELT is mapping an Alu element to an SVA element\n'))
                 continue
 
         ###This parses the vcf file
@@ -264,8 +267,9 @@ with open(input_file,'r') as vcf_file:
                         
         ###This section adds dashes for 5' truncated loci    
         start = MEI_info[1]
-        if str(start) > str(MEI_end):
-            start = MEI_end
+        if int(start) > int(MEI_end):
+            failed.write(str(vcf_split[0] + '_' + vcf_split[1] + '_' + info_split[5] + '_' + info_split[6] + ': start longer than MEI length\n'))
+            continue
         if start > '1':
             truncation = "d1-" + str(int(start)-1)
             drange = deletion_range(truncation)
@@ -275,9 +279,7 @@ with open(input_file,'r') as vcf_file:
                         
         ###This section adds dashes for 3' truncated loci
         stop = MEI_info[2]
-        if str(stop) > str(MEI_end):
-            stop = MEI_end
-        if str(stop) != str(MEI_end):
+        if str(stop) < str(MEI_end):
             truncation = "d" + str(int(stop)+1) + "-" + str(MEI_end)
             drange = deletion_range(truncation)
             for n in drange:
