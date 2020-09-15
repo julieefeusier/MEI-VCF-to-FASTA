@@ -22,7 +22,7 @@ parser.add_argument('-m',
                     metavar='MELT HG19 TRANSPOSON',
                     dest="m",
                     type=str,
-                    help='MELT HG19 human transposon names (Alu, LINE1, or SVA)')
+                    help='MELT Hg19/Hg38 human transposon families (Alu, LINE1, or SVA)')
 
 parser.add_argument('-f', '--fasta',
                     metavar='TRANSPOSON FASTA',
@@ -214,6 +214,7 @@ with open(input_file,'r') as vcf_file:
         if re.search("#", line):
             continue
 
+        ###This skips Alu elements that are classified as SVA elements
         if MEI == 'Alu':
             if re.search("MEINFO=SVA", line):
                 continue
@@ -263,7 +264,9 @@ with open(input_file,'r') as vcf_file:
                         
         ###This section adds dashes for 5' truncated loci    
         start = MEI_info[1]
-        if start > '1':
+        if str(start) > str(MEI_end):
+            start = MEI_end
+        elif start > '1':
             truncation = "d1-" + str(int(start)-1)
             drange = deletion_range(truncation)
             for n in drange:
@@ -272,6 +275,8 @@ with open(input_file,'r') as vcf_file:
                         
         ###This section adds dashes for 3' truncated loci
         stop = MEI_info[2]
+        if str(stop) > str(MEI_end):
+            stop = MEI_end
         if str(stop) != str(MEI_end):
             truncation = "d" + str(int(stop)+1) + "-" + str(MEI_end)
             drange = deletion_range(truncation)
